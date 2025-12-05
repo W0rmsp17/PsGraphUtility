@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+	<OutputType>Library</OutputType>
+	<TargetFramework>net8.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<LangVersion>latest</LangVersion>
+
+	<!-- Force NuGet assemblies (like Microsoft.Identity.Client.dll) to copy to bin -->
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="docs\" />
+    <Folder Include="build\" />
+    <Folder Include="src\PsGraphUtility\Graph\Entra\" />
+    <Folder Include="src\PsGraphUtility\Routes\Me\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.79.1" />
+    <!--<PackageReference Include="System.Text.Json" Version="10.0.0" /> -->
+  </ItemGroup>
+
+</Project>
