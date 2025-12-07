@@ -1,5 +1,5 @@
 ﻿using System.Management.Automation;
-using PsGraphUtility.Graph.Groups.Models;
+using PsGraphUtility.Graph.Entra.Groups.Models;
 
 namespace PsGraphUtility.PowerShell.Groups
 {

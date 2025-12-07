@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Management.Automation;
-using PsGraphUtility.Graph.Roles.Models;
 using PsGraphUtility.Auth;
-using PsGraphUtility.Graph.Users.Models;
+using PsGraphUtility.Graph.Entra.Users.Models;
 using System.Threading;
+using PsGraphUtility.Graph.Entra.Roles.Models;
 
 namespace PsGraphUtility.PowerShell.Roles
 {

@@ -1,7 +1,7 @@
 ﻿// path src/PsGraphUtility/PowerShell/Users/SetGphUserContextCommand.cs
 using System.Management.Automation;
-using PsGraphUtility.Graph.Users.Models;
-using PsGraphUtility.Graph.Users;
+using PsGraphUtility.Graph.Entra.Users;
+using PsGraphUtility.Graph.Entra.Users.Models;
 
 namespace PsGraphUtility.PowerShell.Users;
 

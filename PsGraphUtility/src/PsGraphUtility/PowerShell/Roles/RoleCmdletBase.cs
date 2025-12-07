@@ -3,7 +3,7 @@ using System.Management.Automation;
 using System;
 
 using PsGraphUtility.Auth;
-using PsGraphUtility.Graph.Roles.Interfaces;
+using PsGraphUtility.Graph.Entra.Roles.Interfaces;
 
 namespace PsGraphUtility.PowerShell.Roles
 {

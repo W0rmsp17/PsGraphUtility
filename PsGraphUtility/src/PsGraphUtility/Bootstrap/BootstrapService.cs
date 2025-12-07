@@ -1,9 +1,9 @@
 ﻿// src/PsGraphUtility/Bootstrap/BootstrapService.cs
 using PsGraphUtility.Auth;
-using PsGraphUtility.Graph;
 using PsGraphUtility.Graph.HTTP;
 using PsGraphUtility.Routes.Account;
 using PsGraphUtility.Routes.Users;
+using PsGraphUtility.Graph.Interface;
 using System;
 using System.IO;
 using System.Linq;

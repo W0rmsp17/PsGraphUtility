@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using PsGraphUtility.Auth;
-using PsGraphUtility.Graph.Users.Models;
+using PsGraphUtility.Graph.Exchange.Users.Models;
 
 namespace PsGraphUtility.Graph.Exchange.Users.Interface
 {
@@ -9,7 +9,11 @@ namespace PsGraphUtility.Graph.Exchange.Users.Interface
     {
         Task<GraphMailboxUserDto> GetMailboxUserAsync(
             GraphAuthContext context,
-            string userIdOrUpn,
+            string userKey,
+            bool includeMailbox,
+            bool includeMailboxStats,
+            bool includeFolderStats,
+            bool includeFolderPermissions,
             CancellationToken cancellationToken = default);
     }
 }

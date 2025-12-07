@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Management.Automation;
-using PsGraphUtility.Graph.Roles.Models;
+using PsGraphUtility.Graph.Entra.Roles.Models;
 
 namespace PsGraphUtility.PowerShell.Roles
 {

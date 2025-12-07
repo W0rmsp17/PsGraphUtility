@@ -1,6 +1,5 @@
 ﻿using PsGraphUtility.Auth;
-using PsGraphUtility.Graph.Groups.Interface;
-using PsGraphUtility.Graph.Users.Interface;
+using PsGraphUtility.Graph.Entra.Groups.Interface;
 using System;
 using System.Management.Automation;
 

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PsGraphUtility.Auth;
 
-namespace PsGraphUtility.Graph;
+namespace PsGraphUtility.Graph.Interface;
 
 public interface IGraphClient
 {

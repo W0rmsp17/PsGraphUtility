@@ -1,10 +1,10 @@
 ﻿//Path src/PsGraphUtility/PowerShell/Users/GetGphUserCommand.cs
 using System.Management.Automation;
-using PsGraphUtility.Graph.Users.Models;
-using PsGraphUtility.Graph.Users.Interface;
-using PsGraphUtility.Graph.Users.Helpers;
+using PsGraphUtility.Graph.Entra.Users.Interface;
+using PsGraphUtility.Graph.Entra.Users.Helpers;
 using PsGraphUtility.PowerShell.Users;
-using PsGraphUtility.Graph.Users;
+using PsGraphUtility.Graph.Entra.Users;
+using PsGraphUtility.Graph.Entra.Users.Models;
 
 namespace PsGraphUtility.PowerShell.Users;
 

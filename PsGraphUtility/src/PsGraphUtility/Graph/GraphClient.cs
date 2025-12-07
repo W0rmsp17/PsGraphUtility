@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using PsGraphUtility.Auth;
+using PsGraphUtility.Graph.Interface;
 
 
 namespace PsGraphUtility.Graph;

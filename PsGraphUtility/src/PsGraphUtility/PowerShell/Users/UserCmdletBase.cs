@@ -1,6 +1,6 @@
 ﻿using System.Management.Automation;
 using PsGraphUtility.Auth;
-using PsGraphUtility.Graph.Users.Interface;
+using PsGraphUtility.Graph.Entra.Users.Interface;
 
 namespace PsGraphUtility.PowerShell.Users;
 

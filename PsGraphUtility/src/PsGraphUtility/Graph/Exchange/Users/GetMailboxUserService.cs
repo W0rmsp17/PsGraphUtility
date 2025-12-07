@@ -1,97 +1,153 @@
 ﻿using PsGraphUtility.Auth;
+using PsGraphUtility.Graph.Exchange;
 using PsGraphUtility.Graph;
+using PsGraphUtility.Graph.Entra.Users.Interface;
 using PsGraphUtility.Graph.Exchange.Users.Interface;
 using PsGraphUtility.Graph.Exchange.Users.Models;
-using PsGraphUtility.Graph.HTTP;
-using PsGraphUtility.Graph.Users.Interface;
-using PsGraphUtility.Graph.Users.Models;
-using PsGraphUtility.Routes.Users;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+using PsGraphUtility.PowerShell.Exchange;
+using PsGraphUtility.Graph.Interface;
+using PsGraphUtility.Auth.Powershell;
 
 namespace PsGraphUtility.Graph.Exchange.Users
 {
     public sealed class GetMailboxUserService : IGetMailboxUserService
     {
         private readonly IGraphClient _graph;
-        private readonly IUserLookupService _lookup;
+        private readonly IUserLookupService _userLookup;
 
-        public GetMailboxUserService(IGraphClient graph, IUserLookupService lookup)
+        public GetMailboxUserService(IGraphClient graph, IUserLookupService userLookup)
         {
-            _graph = graph;
-            _lookup = lookup;
+            _graph = graph ?? throw new ArgumentNullException(nameof(graph));
+            _userLookup = userLookup ?? throw new ArgumentNullException(nameof(userLookup));
         }
 
         public async Task<GraphMailboxUserDto> GetMailboxUserAsync(
             GraphAuthContext context,
-            string userIdOrUpn,
+            string userKey,
+            bool includeMailbox,
+            bool includeMailboxStats,
+            bool includeFolderStats,
+            bool includeFolderPermissions,
             CancellationToken cancellationToken = default)
         {
-            var userId = await _lookup.ResolveUserIdAsync(
-                context, userIdOrUpn, cancellationToken).ConfigureAwait(false);
-
-            using var userReq = new HttpRequestMessage(
-                HttpMethod.Get,
-                UserRoutes.UserById(userId));
-
-            var userRes = await _graph.SendAsync(context, userReq, cancellationToken)
-                                      .ConfigureAwait(false);
-
-            var userBody = await GraphResponseHelper.EnsureSuccessAsync(
-                userRes,
-                $"get user '{userIdOrUpn}'",
-                cancellationToken);
-
-            using var userDoc = JsonDocument.Parse(userBody);
-            var uRoot = userDoc.RootElement;
+            if (string.IsNullOrWhiteSpace(userKey))
+                throw new ArgumentException("User key must be provided.", nameof(userKey));
 
             var dto = new GraphMailboxUserDto
             {
-                Id = uRoot.GetProperty("id").GetString() ?? string.Empty,
-                UserPrincipalName = uRoot.GetProperty("userPrincipalName").GetString() ?? string.Empty,
-                DisplayName = uRoot.GetProperty("displayName").GetString() ?? string.Empty
+                UserPrincipalName = userKey
             };
 
-            using var mbxReq = new HttpRequestMessage(
-                HttpMethod.Get,
-                UserRoutes.MailboxSettings(userId));
-
-            var mbxRes = await _graph.SendAsync(context, mbxReq, cancellationToken)
-                                     .ConfigureAwait(false);
-
-            var mbxBody = await GraphResponseHelper.EnsureSuccessAsync(
-                mbxRes,
-                $"get mailboxSettings for '{userIdOrUpn}'",
-                cancellationToken);
-
-            using var mbxDoc = JsonDocument.Parse(mbxBody);
-            var mRoot = mbxDoc.RootElement;
-
-            if (mRoot.TryGetProperty("timeZone", out var tz))
-                dto.TimeZone = tz.GetString();
-
-            if (mRoot.TryGetProperty("language", out var lang) &&
-                lang.ValueKind == JsonValueKind.Object &&
-                lang.TryGetProperty("displayName", out var ldisp))
-                dto.Language = ldisp.GetString();
-
-            if (mRoot.TryGetProperty("automaticRepliesSetting", out var ar) &&
-                ar.ValueKind == JsonValueKind.Object)
+            await ExchangeSessionManager.RunInExchangeSessionAsync(ps =>
             {
-                var status = ar.TryGetProperty("status", out var st) ? st.GetString() : null;
-                dto.AutomaticRepliesEnabled =
-                    string.Equals(status, "alwaysEnabled", System.StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(status, "scheduled", System.StringComparison.OrdinalIgnoreCase);
+      
+                if (includeMailbox)
+                {
+                    ps.Commands.Clear();
+                    ps.AddCommand("Get-EXOMailbox")
+                      .AddParameter("UserPrincipalName", userKey);
 
-                if (ar.TryGetProperty("internalReplyMessage", out var irm))
-                    dto.AutoReplyInternalMessage = irm.GetString();
+                    var mbx = ps.Invoke().FirstOrDefault();
+                    ps.Commands.Clear();
 
-                if (ar.TryGetProperty("externalReplyMessage", out var erm))
-                    dto.AutoReplyExternalMessage = erm.GetString();
-            }
+                    if (mbx != null)
+                    {
+                        dto.Id = mbx.Members["ExternalDirectoryObjectId"]?.Value?.ToString() ?? dto.Id;
+                        dto.DisplayName = mbx.Members["DisplayName"]?.Value?.ToString() ?? dto.DisplayName;
+                        dto.PrimarySmtpAddress = mbx.Members["PrimarySmtpAddress"]?.Value?.ToString()
+                                                 ?? dto.PrimarySmtpAddress;
 
+                        var archiveStatus = mbx.Members["ArchiveStatus"]?.Value?.ToString();
+
+                        dto.Mailbox = new GraphMailboxSummaryDto
+                        {
+                            RecipientTypeDetails = mbx.Members["RecipientTypeDetails"]?.Value?.ToString(),
+                            ArchiveStatus = archiveStatus,
+                            ArchiveEnabled = archiveStatus is null
+                                ? null
+                                : !string.Equals(archiveStatus, "None", StringComparison.OrdinalIgnoreCase),
+                            LitigationHoldEnabled = mbx.Members["LitigationHoldEnabled"]?.Value?.ToString(),
+                            RetentionPolicy = mbx.Members["RetentionPolicy"]?.Value?.ToString()
+                        };
+                    }
+                }
+
+       
+                if (includeMailboxStats)
+                {
+                    ps.Commands.Clear();
+                    ps.AddCommand("Get-EXOMailboxStatistics")
+                      .AddParameter("UserPrincipalName", userKey);
+
+                    var stat = ps.Invoke().FirstOrDefault();
+                    ps.Commands.Clear();
+
+                    if (stat != null)
+                    {
+                        dto.Statistics = new GraphMailboxStatisticsDto
+                        {
+                            ItemCount = stat.Members["ItemCount"]?.Value as long?,
+                            LastLogonTime = stat.Members["LastLogonTime"]?.Value as DateTimeOffset?,
+                            LastLogoffTime = stat.Members["LastLogoffTime"]?.Value as DateTimeOffset?,
+                            LastInteractionTime = stat.Members["LastInteractionTime"]?.Value as DateTimeOffset?
+                        };
+                       
+                    }
+                }
+
+            
+                if (includeFolderStats)
+                {
+                    ps.Commands.Clear();
+                    ps.AddCommand("Get-EXOMailboxFolderStatistics")
+                      .AddParameter("UserPrincipalName", userKey);
+
+                    var results = ps.Invoke();
+                    ps.Commands.Clear();
+
+                    var list = new List<GraphMailboxFolderStatisticsDto>();
+
+                    foreach (var r in results)
+                    {
+                        list.Add(new GraphMailboxFolderStatisticsDto
+                        {
+                            FolderPath = r.Members["FolderPath"]?.Value?.ToString(),
+                            ItemsInFolder = r.Members["ItemsInFolder"]?.Value as long?,
+                            ItemsInFolderAndSubfolders =
+                                r.Members["ItemsInFolderAndSubfolders"]?.Value as long?
+                        });
+                    }
+
+                    dto.FolderStatistics = list;
+                }
+
+                if (includeFolderPermissions)
+                {
+                    ps.Commands.Clear();
+                    ps.AddCommand("Get-EXOMailboxFolderPermission")
+                      .AddParameter("Identity", $"{userKey}:\\Inbox");
+
+                    var results = ps.Invoke();
+                    ps.Commands.Clear();
+
+                    var list = new List<GraphMailboxFolderPermissionDto>();
+
+                    foreach (var r in results)
+                    {
+                        list.Add(new GraphMailboxFolderPermissionDto
+                        {
+                            FolderPath = r.Members["Identity"]?.Value?.ToString(),
+                            User = r.Members["User"]?.Value?.ToString(),
+                            AccessRights = r.Members["AccessRights"]?.Value?.ToString(),
+                            IsInherited = (bool?)r.Members["IsInherited"]?.Value ?? false
+                        });
+                    }
+
+                    dto.FolderPermissions = list;
+                }
+
+                return Task.CompletedTask;
+            });
 
             return dto;
         }

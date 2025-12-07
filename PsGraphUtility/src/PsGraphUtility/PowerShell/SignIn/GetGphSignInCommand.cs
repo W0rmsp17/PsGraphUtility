@@ -1,8 +1,8 @@
 ﻿using PsGraphUtility.Auth;
-using PsGraphUtility.Graph.SignIn.Models;
 using PsGraphUtility.PowerShell;
 using System.Management.Automation;
-using PsGraphUtility.Graph.SignIn;
+using PsGraphUtility.Graph.Entra.Devices;
+using PsGraphUtility.Graph.Entra.SignIn.Models;
 
 namespace PsGraphUtility.PowerShell.SignIn
 {

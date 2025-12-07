@@ -11,10 +11,13 @@
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <Compile Include="src\PsGraphUtility\Graph\Exchange\Exo\GetMailboxUserService.cs.bak" />
+	</ItemGroup>
+
   <ItemGroup>
     <Folder Include="docs\" />
     <Folder Include="build\" />
-    <Folder Include="src\PsGraphUtility\Graph\Entra\" />
     <Folder Include="src\PsGraphUtility\Routes\Me\" />
   </ItemGroup>
 

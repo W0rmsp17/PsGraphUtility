@@ -1,5 +1,5 @@
 ﻿using System.Management.Automation;
-using PsGraphUtility.Graph.Device.Models;
+using PsGraphUtility.Graph.Entra.Devices.Models;
 
 namespace PsGraphUtility.PowerShell.Devices
 {

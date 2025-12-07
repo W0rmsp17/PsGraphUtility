@@ -1,0 +1,208 @@
+﻿/*
+
+using PsGraphUtility.Auth;
+using PsGraphUtility.Auth.Powershell;
+using PsGraphUtility.Graph;
+using PsGraphUtility.Graph.Entra.Users.Interface;
+using PsGraphUtility.Graph.Exchange.Users.Interface;
+using PsGraphUtility.Graph.Exchange.Users.Models;
+using PsGraphUtility.Graph.Interface;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Management.Automation;
+using System.Threading;
+using System.Threading.Tasks;
+using PsGraphUtility.Graph.Exchange;
+
+namespace PsGraphUtility.Graph.Exchange.Users
+{
+    public sealed class GetMailboxUserService : IGetMailboxUserService
+    {
+        // Kept so GlobalServices wiring still works, even though EXO does the real work.
+        private readonly IGraphClient _graph;
+        private readonly IUserLookupService _userLookup;
+
+        public GetMailboxUserService(IGraphClient graph, IUserLookupService userLookup)
+        {
+            _graph = graph ?? throw new ArgumentNullException(nameof(graph));
+            _userLookup = userLookup ?? throw new ArgumentNullException(nameof(userLookup));
+        }
+
+        public async Task<GraphMailboxUserDto> GetMailboxUserAsync(
+            GraphAuthContext context,
+            string userKey,
+            bool includeMailbox,
+            bool includeMailboxStats,
+            bool includeFolderStats,
+            bool includeFolderPermissions,
+            CancellationToken cancellationToken = default)
+        {
+            if (context is null)
+                throw new ArgumentNullException(nameof(context));
+
+            if (string.IsNullOrWhiteSpace(userKey))
+                throw new ArgumentException("User key must be provided.", nameof(userKey));
+
+            var dto = new GraphMailboxUserDto
+            {
+                UserPrincipalName = userKey
+            };
+
+            await ExchangeSessionManager.RunInExchangeSessionAsync(async ps =>
+            {
+                var identity = userKey.Trim();
+
+                // 1) Core mailbox (Get-EXOMailbox)
+                ps.Commands.Clear();
+                ps.AddCommand("Get-EXOMailbox")
+                  .AddParameter("UserPrincipalName", identity);
+
+                var mbx = ps.Invoke().FirstOrDefault();
+                ps.Commands.Clear();
+
+                if (ps.HadErrors)
+                    throw new GraphAuthException($"Get-EXOMailbox failed for '{identity}'.");
+
+                if (mbx == null)
+                    throw new GraphAuthException($"Mailbox '{identity}' not found.");
+
+                dto.Id = GetString(mbx, "ExternalDirectoryObjectId") ?? dto.Id;
+                dto.DisplayName = GetString(mbx, "DisplayName") ?? dto.DisplayName;
+                dto.PrimarySmtpAddress = GetString(mbx, "PrimarySmtpAddress") ?? dto.PrimarySmtpAddress;
+
+                if (includeMailbox)
+                {
+                    var archiveStatus = GetString(mbx, "ArchiveStatus");
+
+                    dto.Mailbox = new GraphMailboxSummaryDto
+                    {
+                        RecipientTypeDetails = GetString(mbx, "RecipientTypeDetails"),
+                        ArchiveStatus = archiveStatus,
+                        ArchiveEnabled = archiveStatus is null
+                            ? null
+                            : !string.Equals(archiveStatus, "None", StringComparison.OrdinalIgnoreCase),
+                        LitigationHoldEnabled = GetString(mbx, "LitigationHoldEnabled"),
+                        RetentionPolicy = GetString(mbx, "RetentionPolicy")
+                    };
+                }
+
+                // 2) Mailbox statistics (Get-EXOMailboxStatistics)
+                if (includeMailboxStats)
+                {
+                    ps.Commands.Clear();
+                    ps.AddCommand("Get-EXOMailboxStatistics")
+                      .AddParameter("UserPrincipalName", identity);
+
+                    var stat = ps.Invoke().FirstOrDefault();
+                    ps.Commands.Clear();
+
+                    if (ps.HadErrors)
+                        throw new GraphAuthException($"Get-EXOMailboxStatistics failed for '{identity}'.");
+
+                    if (stat != null)
+                    {
+                        dto.Statistics = new GraphMailboxStatisticsDto
+                        {
+                            ItemCount = GetLong(stat, "ItemCount"),
+                            // EXO returns formatted strings for sizes – leave bytes null for now.
+                            TotalItemSizeBytes = null,
+                            LastLogonTime = GetDateTimeOffset(stat, "LastLogonTime"),
+                            LastLogoffTime = GetDateTimeOffset(stat, "LastLogoffTime"),
+                            LastInteractionTime = GetDateTimeOffset(stat, "LastInteractionTime")
+                        };
+                    }
+                }
+
+                // 3) Folder statistics (Get-EXOMailboxFolderStatistics)
+                if (includeFolderStats)
+                {
+                    ps.Commands.Clear();
+                    ps.AddCommand("Get-EXOMailboxFolderStatistics")
+                      .AddParameter("UserPrincipalName", identity);
+
+                    var results = ps.Invoke();
+                    ps.Commands.Clear();
+
+                    if (ps.HadErrors)
+                        throw new GraphAuthException($"Get-EXOMailboxFolderStatistics failed for '{identity}'.");
+
+                    var list = new List<GraphMailboxFolderStatisticsDto>();
+
+                    foreach (var r in results)
+                    {
+                        list.Add(new GraphMailboxFolderStatisticsDto
+                        {
+                            FolderPath = GetString(r, "FolderPath"),
+                            ItemsInFolder = GetLong(r, "ItemsInFolder"),
+                            ItemsInFolderAndSubfolders = GetLong(r, "ItemsInFolderAndSubfolders"),
+                            FolderSizeBytes = null // human-readable in EXO; leave null for now
+                        });
+                    }
+
+                    dto.FolderStatistics = list;
+                }
+
+                // 4) Folder permissions (Get-EXOMailboxFolderPermission) – Inbox only for now
+                if (includeFolderPermissions)
+                {
+                    var inboxIdentity = $"{identity}:\\Inbox";
+
+                    ps.Commands.Clear();
+                    ps.AddCommand("Get-EXOMailboxFolderPermission")
+                      .AddParameter("Identity", inboxIdentity);
+
+                    var results = ps.Invoke();
+                    ps.Commands.Clear();
+
+                    if (ps.HadErrors)
+                        throw new GraphAuthException($"Get-EXOMailboxFolderPermission failed for '{inboxIdentity}'.");
+
+                    var list = new List<GraphMailboxFolderPermissionDto>();
+
+                    foreach (var r in results)
+                    {
+                        list.Add(new GraphMailboxFolderPermissionDto
+                        {
+                            FolderPath = GetString(r, "Identity"),
+                            User = GetString(r, "User"),
+                            AccessRights = r.Members["AccessRights"]?.Value?.ToString(),
+                            IsInherited = (bool?)r.Members["IsInherited"]?.Value ?? false
+                        });
+                    }
+
+                    dto.FolderPermissions = list;
+                }
+
+                await Task.CompletedTask;
+            }).ConfigureAwait(false);
+
+            return dto;
+        }
+
+        // ----------------- helpers -----------------
+
+        private static string? GetString(PSObject o, string name)
+            => o.Members[name]?.Value?.ToString();
+
+        private static long? GetLong(PSObject o, string name)
+        {
+            var v = o.Members[name]?.Value;
+            if (v is null) return null;
+            if (v is long l) return l;
+            if (long.TryParse(v.ToString(), out var parsed)) return parsed;
+            return null;
+        }
+
+        private static DateTimeOffset? GetDateTimeOffset(PSObject o, string name)
+        {
+            var v = o.Members[name]?.Value;
+            if (v is null) return null;
+            if (v is DateTimeOffset dto) return dto;
+            if (v is DateTime dt) return new DateTimeOffset(dt);
+            if (DateTimeOffset.TryParse(v.ToString(), out var parsed)) return parsed;
+            return null;
+        }
+    }
+}
+*/

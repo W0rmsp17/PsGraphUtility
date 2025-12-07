@@ -5,21 +5,23 @@ using PsGraphUtility.Auth;
 using PsGraphUtility.Bootstrap;
 using PsGraphUtility.Core;
 using PsGraphUtility.Graph;
-using PsGraphUtility.Graph.Device;
-using PsGraphUtility.Graph.Device.Interfaces;
+using PsGraphUtility.Graph.Entra.Devices;
 using PsGraphUtility.Graph.Exchange.Users.Interface;
-using PsGraphUtility.Graph.Groups;
-using PsGraphUtility.Graph.Groups.Helpers;
-using PsGraphUtility.Graph.Groups.Interface;
-using PsGraphUtility.Graph.Roles;
-using PsGraphUtility.Graph.Roles.Interfaces;
-using PsGraphUtility.Graph.SignIn;
-using PsGraphUtility.Graph.SignIn.Interface;
-using PsGraphUtility.Graph.Users;
-using PsGraphUtility.Graph.Users.Helpers;
-
-using PsGraphUtility.Graph.Users.Interface;
+using PsGraphUtility.Graph.Entra.Groups;
+using PsGraphUtility.Graph.Entra.Groups.Helpers;
+using PsGraphUtility.Graph.Entra.Roles;
+using PsGraphUtility.Graph.Entra.SignIn;
+using PsGraphUtility.Graph.Entra.Users;
+using PsGraphUtility.Graph.Entra;
 using PsGraphUtility.Graph.Exchange.Users;
+using PsGraphUtility.Graph.Entra.Devices.Interfaces;
+using PsGraphUtility.Graph.Entra.Groups.Interface;
+using PsGraphUtility.Graph.Entra.Roles.Interfaces;
+using PsGraphUtility.Graph.Entra.SignIn.Interfaces;
+using PsGraphUtility.Graph.Entra.Users.Interface;
+using PsGraphUtility.Graph.Interface;
+using PsGraphUtility.PowerShell.Exchange;
+using PsGraphUtility.Graph.Entra.Users.Helpers;
 
 
 

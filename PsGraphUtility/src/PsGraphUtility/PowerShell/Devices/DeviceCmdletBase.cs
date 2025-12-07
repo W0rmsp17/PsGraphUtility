@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Management.Automation;
 using PsGraphUtility.Auth;
-using PsGraphUtility.Graph.Device.Interfaces;
+using PsGraphUtility.Graph.Entra.Devices.Interfaces;
 
 namespace PsGraphUtility.PowerShell.Devices
 {

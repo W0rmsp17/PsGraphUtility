@@ -1,8 +1,8 @@
-﻿using PsGraphUtility.Graph.Groups.Models;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using PsGraphUtility.PowerShell.Users;
-using PsGraphUtility.Graph.Users;
-using PsGraphUtility.Graph.Users.Interface;
+using PsGraphUtility.Graph.Exchange.Users;
+using PsGraphUtility.Graph.Exchange.Users.Interface;
+using PsGraphUtility.Graph.Entra.Groups.Models;
 
 namespace PsGraphUtility.PowerShell.Groups;
 
@@ -10,7 +10,7 @@ namespace PsGraphUtility.PowerShell.Groups;
 [OutputType(typeof(GraphGroupDto))]
 public sealed class GetGphGroupCommand : GroupCmdletBase
 {
-    /*
+ /*
 .SYNOPSIS
 Gets Microsoft 365 / Entra ID groups, a specific group, or groups for a user.
 
